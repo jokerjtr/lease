@@ -44,7 +44,7 @@ public class LeaseAgreementController {
         service.update(updateWrapper);
         return Result.ok();
     }
-    }
+
 
     @Operation(summary = "保存或更新租约", description = "用于续约")
     @PostMapping("saveOrUpdate")
