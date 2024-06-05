@@ -1,5 +1,6 @@
 package com.atguigu.lease.web.app.service.impl;
 
+import com.atguigu.lease.common.constant.RedisConstant;
 import com.atguigu.lease.common.utils.LoginUserHolder;
 import com.atguigu.lease.model.entity.*;
 import com.atguigu.lease.model.enums.ItemType;
@@ -21,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -63,6 +65,9 @@ public class RoomInfoServiceImpl extends ServiceImpl<RoomInfoMapper, RoomInfo>
 
     @Autowired
     BrowsingHistoryService browsingHistoryService;
+
+    @Autowired
+    RedisTemplate redisTemplate;
     @Override
     public IPage<RoomItemVo> pageRoomItemByQuery(Page<RoomItemVo> page, RoomQueryVo queryVo) {
         return roomInfoMapper.pageRoomItemByQuery(page, queryVo);
@@ -70,6 +75,12 @@ public class RoomInfoServiceImpl extends ServiceImpl<RoomInfoMapper, RoomInfo>
 
     @Override
     public RoomDetailVo getDetailById(Long id) {
+        String key = RedisConstant.APP_ROOM_PREFIX + id;
+        RoomDetailVo roomDetailVo = (RoomDetailVo) redisTemplate.opsForValue().get(key);
+        if (roomDetailVo !=null) {
+            browsingHistoryService.saveHistory(LoginUserHolder.getLoginUser().getUserId(), id);
+            return roomDetailVo;
+        }
         //1.查询房间信息
         RoomInfo roomInfo = roomInfoMapper.selectById(id);
         if (roomInfo == null) {
@@ -93,7 +104,7 @@ public class RoomInfoServiceImpl extends ServiceImpl<RoomInfoMapper, RoomInfo>
         //9.查询公寓信息
         ApartmentItemVo apartmentItemVo = apartmentInfoService.selectApartmentItemVoById(roomInfo.getApartmentId());
 
-        RoomDetailVo roomDetailVo = new RoomDetailVo();
+
         BeanUtils.copyProperties(roomInfo, roomDetailVo);
 
         roomDetailVo.setApartmentItemVo(apartmentItemVo);
